@@ -4274,6 +4274,8 @@ static const struct snd_soc_dapm_widget rt5679_dapm_widgets[] = {
 		0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY("MICBIAS4", RT5679_PWR_LDO1, RT5679_PWR_LDO4_3_BIT,
 		0, NULL, 0),
+	SND_SOC_DAPM_SUPPLY("LDO4", RT5679_PWR_LDO1, RT5679_PWR_BG_LDO4_BIT,
+		0, NULL, 0),
 
 	/* Input Lines */
 	SND_SOC_DAPM_INPUT("DMIC1L"),
@@ -4934,6 +4936,10 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 		rt5679_is_using_asrc },
 	{ "adc mono right filter", NULL, "ADC MONO R ASRC",
 		rt5679_is_using_asrc },
+
+	{ "MICBIAS2", NULL, "LDO4" },
+	{ "MICBIAS3", NULL, "LDO4" },
+	{ "MICBIAS4", NULL, "LDO4" },
 
 	{ "PLL1", NULL, "PLL1 RST" },
 	{ "PLL1", NULL, "PLL1 LDO" },

@@ -1564,6 +1564,8 @@
 #define RT5679_PWR_LDO4_2_BIT			5
 #define RT5679_PWR_LDO4_1			(0x1 << 4)
 #define RT5679_PWR_LDO4_1_BIT			4
+#define RT5679_PWR_BG_LDO4			(0x1 << 3)
+#define RT5679_PWR_BG_LDO4_BIT			3
 #define RT5679_PWR_LDO3_ON			(0x1 << 1)
 #define RT5679_PWR_LDO3_ON_BIT			1
 
