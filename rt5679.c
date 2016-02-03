@@ -4130,13 +4130,15 @@ static int rt5679_micbias1_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA2,
-			RT5679_PWR_CLK_MB1 | RT5679_PWR_VREF3,
-			RT5679_PWR_CLK_MB1 | RT5679_PWR_VREF3);
+			RT5679_PWR_VREF3, RT5679_PWR_VREF3);
+		msleep(20);
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA2,
+			RT5679_PWR_FV3, RT5679_PWR_FV3);
 		break;
 
 	case SND_SOC_DAPM_POST_PMD:
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA2,
-			RT5679_PWR_CLK_MB1 | RT5679_PWR_VREF3, 0);
+			RT5679_PWR_VREF3 | RT5679_PWR_FV3, 0);
 		break;
 
 	default:
@@ -6082,7 +6084,7 @@ static int rt5679_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
-	bclk_ms = frame_size > 32 ? 1 : 0;
+	bclk_ms = frame_size > 32;
 	rt5679->bclk[dai->id] = rt5679->lrck[dai->id] * (32 << bclk_ms);
 
 	dev_dbg(dai->dev, "bclk is %dHz and lrck is %dHz\n",
