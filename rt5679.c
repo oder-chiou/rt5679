@@ -4938,8 +4938,11 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 		rt5679_is_using_asrc },
 
 	{ "MICBIAS2", NULL, "LDO4" },
+	{ "MICBIAS2", NULL, "Vref" },
 	{ "MICBIAS3", NULL, "LDO4" },
+	{ "MICBIAS3", NULL, "Vref" },
 	{ "MICBIAS4", NULL, "LDO4" },
+	{ "MICBIAS4", NULL, "Vref" },
 
 	{ "PLL1", NULL, "PLL1 RST" },
 	{ "PLL1", NULL, "PLL1 LDO" },
