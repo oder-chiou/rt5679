@@ -256,10 +256,18 @@ static int rt5679_spi_probe(struct spi_device *spi)
 	return 0;
 }
 
+#if defined(CONFIG_OF)
+static const struct of_device_id rt5679_of_match[] = {
+	{ .compatible = "realtek,rt5679", },
+	{},
+};
+MODULE_DEVICE_TABLE(of, rt5679_of_match);
+#endif
+
 static struct spi_driver rt5679_spi_driver = {
 	.driver = {
 			.name = "rt5679",
-			.owner = THIS_MODULE,
+			.of_match_table = rt5679_of_match,
 	},
 	.probe = rt5679_spi_probe,
 };
