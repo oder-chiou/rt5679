@@ -4026,9 +4026,11 @@ static int rt5679_vref_event(struct snd_soc_dapm_widget *w,
 		break;
 
 	case SND_SOC_DAPM_POST_PMD:
-		regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA1,
-			RT5679_PWR_VREF1 | RT5679_PWR_FV1 | RT5679_PWR_MB |
-			RT5679_PWR_VREF2 | RT5679_PWR_FV2, 0);
+		if (rt5679->jack_type != SND_JACK_HEADSET)
+			regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA1,
+				RT5679_PWR_VREF1 | RT5679_PWR_FV1 |
+				RT5679_PWR_MB | RT5679_PWR_VREF2 |
+				RT5679_PWR_FV2, 0);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO1,
 			RT5679_PWR_VREF5_L | RT5679_PWR_FV5_L |
 			RT5679_PWR_BG_VREF5_L | RT5679_PWR_VREF5_R |
