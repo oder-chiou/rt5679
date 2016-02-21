@@ -6943,14 +6943,14 @@ struct snd_soc_dai_driver rt5679_dai[] = {
 		.playback = {
 			.stream_name = "AIF1 Playback",
 			.channels_min = 1,
-			.channels_max = 2,
+			.channels_max = 8,
 			.rates = RT5679_STEREO_RATES,
 			.formats = RT5679_FORMATS,
 		},
 		.capture = {
 			.stream_name = "AIF1 Capture",
 			.channels_min = 1,
-			.channels_max = 2,
+			.channels_max = 8,
 			.rates = RT5679_STEREO_RATES,
 			.formats = RT5679_FORMATS,
 		},
@@ -6962,14 +6962,14 @@ struct snd_soc_dai_driver rt5679_dai[] = {
 		.playback = {
 			.stream_name = "AIF2 Playback",
 			.channels_min = 1,
-			.channels_max = 2,
+			.channels_max = 8,
 			.rates = RT5679_STEREO_RATES,
 			.formats = RT5679_FORMATS,
 		},
 		.capture = {
 			.stream_name = "AIF2 Capture",
 			.channels_min = 1,
-			.channels_max = 2,
+			.channels_max = 8,
 			.rates = RT5679_STEREO_RATES,
 			.formats = RT5679_FORMATS,
 		},
