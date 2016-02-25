@@ -2127,7 +2127,8 @@ static const SOC_ENUM_SINGLE_DECL(rt5679_ob_4_7_asrc_enum, RT5679_ASRC7,
 static int rt5679_da_sto1_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2147,7 +2148,8 @@ static int rt5679_da_sto1_asrc_put(struct snd_kcontrol *kcontrol,
 static int rt5679_da_mono2l_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2168,7 +2170,8 @@ static int rt5679_da_mono2l_asrc_put(struct snd_kcontrol *kcontrol,
 static int rt5679_da_mono2r_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2189,7 +2192,8 @@ static int rt5679_da_mono2r_asrc_put(struct snd_kcontrol *kcontrol,
 static int rt5679_da_mono3l_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2210,7 +2214,8 @@ static int rt5679_da_mono3l_asrc_put(struct snd_kcontrol *kcontrol,
 static int rt5679_da_mono3r_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2231,7 +2236,8 @@ static int rt5679_da_mono3r_asrc_put(struct snd_kcontrol *kcontrol,
 static int rt5679_ad_sto1_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2252,7 +2258,8 @@ static int rt5679_ad_sto1_asrc_put(struct snd_kcontrol *kcontrol,
 static int rt5679_ad_sto2_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2273,7 +2280,8 @@ static int rt5679_ad_sto2_asrc_put(struct snd_kcontrol *kcontrol,
 static int rt5679_ad_sto3_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2294,7 +2302,8 @@ static int rt5679_ad_sto3_asrc_put(struct snd_kcontrol *kcontrol,
 static int rt5679_ad_monol_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2315,7 +2324,8 @@ static int rt5679_ad_monol_asrc_put(struct snd_kcontrol *kcontrol,
 static int rt5679_ad_monor_asrc_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	switch (ucontrol->value.integer.value[0]) {
 	case 1 ... 7: /*enable*/
@@ -2351,7 +2361,8 @@ static int rt5679_jack_type_get(struct snd_kcontrol *kcontrol,
 static int rt5679_jack_type_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 	int jack_insert = ucontrol->value.integer.value[0];
 
 	dev_info(codec->dev, "ret=0x%x\n",
@@ -2363,7 +2374,8 @@ static int rt5679_jack_type_put(struct snd_kcontrol *kcontrol,
 static int rt5679_dsp_mode_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 
 	rt5679_set_dsp_mode(codec, ucontrol->value.integer.value[0]);
 
@@ -2373,7 +2385,8 @@ static int rt5679_dsp_mode_put(struct snd_kcontrol *kcontrol,
 static int rt5679_hp_vol_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 	int ret = snd_soc_put_volsw(kcontrol, ucontrol);
 
 	if (snd_soc_read(codec, RT5679_STO_HP_NG2_CTRL1) & 0x8000) {
@@ -2389,7 +2402,8 @@ static int rt5679_hp_vol_put(struct snd_kcontrol *kcontrol,
 static int rt5679_mono_vol_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
 	int ret = snd_soc_put_volsw(kcontrol, ucontrol);
 
 	if (snd_soc_read(codec, RT5679_MONO_AMP_NG2_CTRL1) & 0x8000) {
