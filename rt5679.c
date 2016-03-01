@@ -961,7 +961,7 @@ static int rt5679_dsp_mode_i2c_write(struct rt5679_priv *rt5679,
 		unsigned int reg, unsigned int value)
 {
 	return rt5679_dsp_mode_i2c_write_addr(rt5679, 0x1800c000 + reg * 2,
-		value, 0x0001);
+		value << 16, 0x1);
 }
 
 /**
@@ -996,8 +996,7 @@ static void rt5679_set_dsp_mode(struct snd_soc_codec *codec, bool on)
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO1,
 			RT5679_PWR_LDO3_ON, RT5679_PWR_LDO3_ON);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO2,
-			RT5679_PWR_LDO8 | RT5679_PWR_LDO9,
-			RT5679_PWR_LDO8 | RT5679_PWR_LDO9);
+			RT5679_PWR_LDO9, RT5679_PWR_LDO9);
 		regmap_write(rt5679->regmap, RT5679_DSP_CLK_SOURCE1, 0x0333);
 		regmap_write(rt5679->regmap, RT5679_DSP_CLK_SOURCE2, 0x0333);
 		regmap_update_bits(rt5679->regmap, RT5679_GLB_CLK2, 0x1, 0x1);
@@ -1020,7 +1019,7 @@ static void rt5679_set_dsp_mode(struct snd_soc_codec *codec, bool on)
 		regmap_update_bits(rt5679->regmap, RT5679_HIFI_MINI_DSP_CTRL_ST,
 			0x30, 0);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO2,
-			RT5679_PWR_LDO8 | RT5679_PWR_LDO9, 0);
+			RT5679_PWR_LDO9, 0);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO1,
 			RT5679_PWR_LDO3_ON, 0);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA1,
