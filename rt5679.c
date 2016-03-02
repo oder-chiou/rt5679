@@ -2008,9 +2008,7 @@ static void rt5679_jack_detect_work(struct work_struct *work)
 				switch_set_state(&rt5679_headset_switch, 1);
 #endif
 				regmap_update_bits(rt5679->regmap,
-					RT5679_4BTN_IL_CMD2, 0x8000, 0x8000);
-				regmap_write(rt5679->regmap,
-					RT5679_4BTN_IL_CMD1, 0xfff3);
+					RT5679_4BTN_IL_CMD2, 0xc000, 0xc000);
 				regmap_update_bits(rt5679->regmap,
 					RT5679_IRQ_CTRL3, 0x20, 0x20);
 			} else {
@@ -2029,7 +2027,7 @@ static void rt5679_jack_detect_work(struct work_struct *work)
 			regmap_update_bits(rt5679->regmap, RT5679_IRQ_CTRL3,
 				0x20, 0);
 			regmap_update_bits(rt5679->regmap, RT5679_4BTN_IL_CMD2,
-				0x8000, 0);
+				0xc000, 0);
 
 			rt5679->irq_work_delay_time = 250;
 	}
@@ -2065,6 +2063,8 @@ int rt5679_set_jack_detect(struct snd_soc_codec *codec,
 	regmap_update_bits(rt5679->regmap, RT5679_IRQ_CTRL1, 0x8800, 0x8800);
 	regmap_update_bits(rt5679->regmap, RT5679_MF_PIN_CTRL1,
 		RT5679_GP1_TYPE_MASK, RT5679_GP1_TYPE_IRQ1);
+	regmap_update_bits(rt5679->regmap, RT5679_JACK_MIC_DET_CTRL4, 0x72,
+		0x72);
 #ifdef CONFIG_SWITCH
 	switch_dev_register(&rt5679_headset_switch);
 #endif
