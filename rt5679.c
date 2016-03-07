@@ -71,6 +71,7 @@ static struct reg_default rt5679_init_list[] = {
 	/* MONO fine tune end */
 	{RT5679_MF_PIN_CTRL1			, 0x2009},
 	{RT5679_PR_REG_PLL1_CTRL2		, 0x0044},
+	{RT5679_PR_REG_PLL2_CTRL2		, 0x0044},
 };
 
 static int rt5679_reg_init(struct snd_soc_codec *codec)
@@ -961,7 +962,7 @@ static int rt5679_dsp_mode_i2c_write(struct rt5679_priv *rt5679,
 		unsigned int reg, unsigned int value)
 {
 	return rt5679_dsp_mode_i2c_write_addr(rt5679, 0x1800c000 + reg * 2,
-		value << 16, 0x1);
+		value << 16 | value, 0x1);
 }
 
 /**
@@ -4220,6 +4221,80 @@ static int rt5679_mono_event(struct snd_soc_dapm_widget *w,
 	return 0;
 }
 
+static int rt5679_dsp_event(struct snd_soc_dapm_widget *w,
+	struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_codec *codec = w->codec;
+	struct rt5679_priv *rt5679 = snd_soc_codec_get_drvdata(codec);
+	const struct firmware *fw;
+	int ret;
+
+	switch (event) {
+	case SND_SOC_DAPM_POST_PMU:
+		regmap_write(rt5679->regmap, RT5679_PLL2_CTRL1, 0x2e00);
+		regmap_write(rt5679->regmap, RT5679_PLL2_CTRL2, 0x5000);
+		regmap_update_bits(rt5679->regmap, RT5679_LDO8_LDO9_PR_CTRL,
+			0x0010, 0);
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO1,
+			RT5679_PWR_LDO3_ON, RT5679_PWR_LDO3_ON);
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO2,
+			RT5679_LDO_PLL2 | RT5679_PWR_LDO9,
+			RT5679_LDO_PLL2 | RT5679_PWR_LDO9);
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA1,
+			RT5679_RST_PLL2 | RT5679_PWR_PLL2,
+			RT5679_RST_PLL2 | RT5679_PWR_PLL2);
+		regmap_write(rt5679->regmap, RT5679_DSP_CLK_SOURCE1, 0x0111);
+		regmap_write(rt5679->regmap, RT5679_DSP_CLK_SOURCE2, 0x0555);
+		regmap_update_bits(rt5679->regmap, RT5679_GLB_CLK2, 0x1, 0x1);
+		regmap_write(rt5679->regmap, RT5679_PWR_LDO3, 0x7707);
+		regmap_update_bits(rt5679->regmap, RT5679_HIFI_MINI_DSP_CTRL_ST,
+			0x30, 0x30);
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_DSP,
+			RT5679_PWR_DCVDD9_ISO | RT5679_PWR_DCVDD3_ISO |
+			RT5679_PWR_SRAM | RT5679_PWR_MINI_DSP |
+			RT5679_PWR_EP_DSP, RT5679_PWR_DCVDD9_ISO |
+			RT5679_PWR_DCVDD3_ISO | RT5679_PWR_SRAM |
+			RT5679_PWR_MINI_DSP | RT5679_PWR_EP_DSP);
+		rt5679->is_dsp_mode = true;
+
+		ret = request_firmware(&fw, "ALC5679_50000000", codec->dev);
+		if (ret == 0) {
+			rt5679_spi_burst_write(0x50000000, fw->data, fw->size);
+			release_firmware(fw);
+		}
+
+		ret = request_firmware(&fw, "ALC5679_60000000", codec->dev);
+		if (ret == 0) {
+			rt5679_spi_burst_write(0x60000000, fw->data, fw->size);
+			release_firmware(fw);
+		}
+
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_DSP, 0x1, 0x0);
+		break;
+
+	case SND_SOC_DAPM_PRE_PMD:
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_DSP, 0x1, 0x1);
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_DSP,
+			RT5679_PWR_DCVDD9_ISO | RT5679_PWR_DCVDD3_ISO |
+			RT5679_PWR_SRAM | RT5679_PWR_MINI_DSP |
+			RT5679_PWR_EP_DSP, 0);
+		rt5679->is_dsp_mode = false;
+		regmap_update_bits(rt5679->regmap, RT5679_HIFI_MINI_DSP_CTRL_ST,
+			0x30, 0);
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA1,
+			RT5679_RST_PLL2 | RT5679_PWR_PLL2, 0);
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO2,
+			RT5679_LDO_PLL2 | RT5679_PWR_LDO9, 0);
+		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO1,
+			RT5679_PWR_LDO3_ON, 0);
+		break;
+
+	default:
+		return 0;
+	}
+	return 0;
+}
+
 static const struct snd_soc_dapm_widget rt5679_dapm_widgets[] = {
 	SND_SOC_DAPM_SUPPLY("Vref", SND_SOC_NOPM, 0, 0, rt5679_vref_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
@@ -4756,6 +4831,9 @@ static const struct snd_soc_dapm_widget rt5679_dapm_widgets[] = {
 		rt5679_ob_6_mix, ARRAY_SIZE(rt5679_ob_6_mix)),
 	SND_SOC_DAPM_MIXER("OB7 MIX", SND_SOC_NOPM, 0, 0,
 		rt5679_ob_7_mix, ARRAY_SIZE(rt5679_ob_7_mix)),
+
+	SND_SOC_DAPM_SUPPLY("DSP event", SND_SOC_NOPM, 0, 0, rt5679_dsp_event,
+		SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
 
 	/* Output Side */
 	/* DAC mixer before sound effect  */
@@ -5530,6 +5608,9 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 	{ "IB01 Mini Mux", "VAD ADC FILTER", "VAD ADC FILTER Mux" },
 	{ "IB01 Mini Mux", "DAC1 FS", "DAC1 FS" },
 
+	{ "OB01 MIX", NULL, "DSP event" },
+	{ "OB23 MIX", NULL, "DSP event" },
+
 	{ "OB01 MIX", "IB01 Switch", "IB01 Bypass Mux" },
 	{ "OB01 MIX", "IB23 Switch", "IB23 Bypass Mux" },
 	{ "OB01 MIX", "IB45 Switch", "IB45 Bypass Mux" },
@@ -5853,8 +5934,11 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 
 	{ "DAC1 MIXL", "Stereo ADC Switch", "ADDA1 Mux" },
 	{ "DAC1 MIXL", "DAC1 Switch", "DAC1 Mux" },
+	{ "DAC1 MIXL", NULL, "dac stereo1 filter" },
 	{ "DAC1 MIXR", "Stereo ADC Switch", "ADDA1 Mux" },
 	{ "DAC1 MIXR", "DAC1 Switch", "DAC1 Mux" },
+	{ "DAC1 MIXR", NULL, "dac stereo1 filter" },
+	{ "dac stereo1 filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 
 	{ "DAC1 FS", NULL, "DAC1 MIXL" },
 	{ "DAC1 FS", NULL, "DAC1 MIXR" },
@@ -5869,6 +5953,8 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 	{ "DAC2 L Mux", "OB45", "OutBound4" },
 	{ "DAC2 L Mux", "VAD ADC/HAPTIC GEN", "VAD ADC Mux" },
 	{ "DAC2 L Mux", "MONO ADC MIX", "Mono ADC MIXL ADC" },
+	{ "DAC2 L Mux", NULL, "dac mono2 left filter" },
+	{ "dac mono2 left filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 
 	{ "DAC2 R Mux", "IF1 DAC23", "IF1 DAC3 Mux" },
 	{ "DAC2 R Mux", "IF2 DAC23", "IF2 DAC3 Mux" },
@@ -5880,6 +5966,8 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 	{ "DAC2 R Mux", "OB45", "OutBound3" },
 	{ "DAC2 R Mux", "VAD ADC/HAPTIC GEN", "HAPTIC GEN" },
 	{ "DAC2 R Mux", "MONO ADC MIX", "Mono ADC MIXR ADC" },
+	{ "DAC2 R Mux", NULL, "dac mono2 right filter" },
+	{ "dac mono2 right filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 
 	{ "DAC3 L Mux", "IF1 DAC45", "IF1 DAC4 Mux" },
 	{ "DAC3 L Mux", "IF2 DAC45", "IF2 DAC4 Mux" },
@@ -5893,6 +5981,8 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 	{ "DAC3 L Mux", "OB23", "OutBound2" },
 	{ "DAC3 L Mux", "OB45", "OutBound4" },
 	{ "DAC3 L Mux", "STO3 ADC MIX", "Stereo3 ADC MIXL" },
+	{ "DAC3 L Mux", NULL, "dac mono3 left filter" },
+	{ "dac mono3 left filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 
 	{ "DAC3 R Mux", "IF1 DAC45", "IF1 DAC5 Mux" },
 	{ "DAC3 R Mux", "IF2 DAC45", "IF2 DAC5 Mux" },
@@ -5906,6 +5996,8 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 	{ "DAC3 R Mux", "OB23", "OutBound3" },
 	{ "DAC3 R Mux", "OB45", "OutBound5" },
 	{ "DAC3 R Mux", "STO3 ADC MIX", "Stereo3 ADC MIXR" },
+	{ "DAC3 R Mux", NULL, "dac mono3 right filter" },
+	{ "dac mono3 right filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 
 	{ "Sidetone Mux", "DMIC1L", "DMIC1L" },
 	{ "Sidetone Mux", "DMIC2L", "DMIC2L" },
@@ -5928,7 +6020,6 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 	{ "Stereo DAC MIXR", "DAC2 R Switch", "DAC2 R Mux" },
 	{ "Stereo DAC MIXL", "DAC2 L Switch", "DAC2 L Mux" },
 	{ "Stereo DAC MIXR", "DAC3 R Switch", "DAC3 R Mux" },
-	{ "dac stereo1 filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 
 	{ "Mono DAC MIXL", "ST L Switch", "Sidetone Mux" },
 	{ "Mono DAC MIXL", "DAC2 L Switch", "DAC2 L Mux" },
@@ -5936,16 +6027,12 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 	{ "Mono DAC MIXL", "DAC2 R Switch", "DAC2 R Mux" },
 	{ "Mono DAC MIXL", "DAC3 L Switch", "DAC3 L Mux" },
 	{ "Mono DAC MIXL", "DAC3 R Switch", "DAC3 R Mux" },
-	{ "Mono DAC MIXL", NULL, "dac mono2 left filter" },
-	{ "dac mono2 left filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 	{ "Mono DAC MIXR", "ST R Switch", "Sidetone Mux" },
 	{ "Mono DAC MIXR", "DAC2 R Switch", "DAC2 R Mux" },
 	{ "Mono DAC MIXR", "DAC1 R Switch", "DAC1 MIXR" },
 	{ "Mono DAC MIXR", "DAC2 L Switch", "DAC2 L Mux" },
 	{ "Mono DAC MIXR", "DAC3 R Switch", "DAC3 R Mux" },
 	{ "Mono DAC MIXR", "DAC3 L Switch", "DAC3 L Mux" },
-	{ "Mono DAC MIXR", NULL, "dac mono2 right filter" },
-	{ "dac mono2 right filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 
 	{ "DD MIXL", "Sto DAC Mix L Switch", "DAC1 L Mixer Source Mux" },
 	{ "DD MIXL", "Mono DAC Mix L Switch", "Mono DAC MIXL" },
@@ -5953,23 +6040,17 @@ static const struct snd_soc_dapm_route rt5679_dapm_routes[] = {
 	{ "DD MIXL", "DAC3 R Switch", "DAC3 R Mux" },
 	{ "DD MIXL", "DAC1 L Switch", "DAC1 MIXL" },
 	{ "DD MIXL", "DAC2 L Switch", "DAC2 L Mux" },
-	{ "DD MIXL", NULL, "dac mono3 left filter" },
-	{ "dac mono3 left filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 	{ "DD MIXR", "Sto DAC Mix R Switch", "DAC1 R Mixer Source Mux" },
 	{ "DD MIXR", "Mono DAC Mix R Switch", "Mono DAC MIXR" },
 	{ "DD MIXR", "DAC3 L Switch", "DAC3 L Mux" },
 	{ "DD MIXR", "DAC3 R Switch", "DAC3 R Mux" },
 	{ "DD MIXR", "DAC1 R Switch", "DAC1 MIXR" },
 	{ "DD MIXR", "DAC2 R Switch", "DAC2 R Mux" },
-	{ "DD MIXR", NULL, "dac mono3 right filter" },
-	{ "dac mono3 right filter", NULL, "PLL1", rt5679_is_sys_clk_from_pll },
 
 	{ "DAC1 L Mixer Source Mux", "DAC1", "DAC1 MIXL"},
 	{ "DAC1 L Mixer Source Mux", "Mixer", "Stereo DAC MIXL"},
-	{ "DAC1 L Mixer Source Mux", NULL, "dac stereo1 filter" },
 	{ "DAC1 R Mixer Source Mux", "DAC1", "DAC1 MIXR"},
 	{ "DAC1 R Mixer Source Mux", "Mixer", "Stereo DAC MIXR"},
-	{ "DAC1 R Mixer Source Mux", NULL, "dac stereo1 filter" },
 
 	{ "Stereo DAC MIX", NULL, "DAC1 L Mixer Source Mux" },
 	{ "Stereo DAC MIX", NULL, "DAC1 R Mixer Source Mux" },
