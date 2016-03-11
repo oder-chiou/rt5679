@@ -4231,8 +4231,10 @@ static int rt5679_dsp_event(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
-		regmap_write(rt5679->regmap, RT5679_PLL2_CTRL1, 0x2e00);
-		regmap_write(rt5679->regmap, RT5679_PLL2_CTRL2, 0x5000);
+		// 24.576Mhz to 150Mhz
+		regmap_write(rt5679->regmap, RT5679_PLL2_CTRL1, 0x0ee0);
+		regmap_write(rt5679->regmap, RT5679_PLL2_CTRL2, 0x8002);
+		regmap_write(rt5679->regmap, RT5679_PLL2_CTRL2, 0x8000);
 		regmap_update_bits(rt5679->regmap, RT5679_LDO8_LDO9_PR_CTRL,
 			0x0010, 0);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO1,
