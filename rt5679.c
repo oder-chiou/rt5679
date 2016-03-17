@@ -38,6 +38,7 @@
 #include "rt5679-spi.h"
 
 //#define DSP_MODE_USE_SPI
+#define DSP_AOV_TEST
 
 #define VERSION "0.0.2"
 
@@ -988,22 +989,40 @@ static int rt5679_dsp_mode_i2c_read(
 static void rt5679_set_dsp_mode(struct snd_soc_codec *codec, bool on)
 {
 	struct rt5679_priv *rt5679 = snd_soc_codec_get_drvdata(codec);
+	const struct firmware *fw;
+	int ret;
 
 	if (on) {
-		regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA1,
-			RT5679_PWR_CLK_25M, RT5679_PWR_CLK_25M);
+		regmap_update_bits(rt5679->regmap,
+			RT5679_MCLK_GATING_CTRL, RT5679_MCLK_GATE_MASK,
+			RT5679_MCLK_GATE_EN);
 		regmap_update_bits(rt5679->regmap, RT5679_LDO8_LDO9_PR_CTRL,
 			0x0010, 0);
+		regmap_update_bits(rt5679->regmap, RT5679_DMIC_CTRL1,
+			RT5679_DMIC_1_EN_MASK, RT5679_DMIC_1_EN);
+		regmap_write(rt5679->regmap, RT5679_VAD_ADC_FILTER_CTRL1, 0x8a2f);
+		regmap_write(rt5679->regmap, RT5679_VAD_ADC_FILTER_CTRL2, 0x0001);
+		regmap_write(rt5679->regmap, RT5679_VAD_CLK_SETTING1, 0x0720);
+		regmap_write(rt5679->regmap, RT5679_VAD_CLK_SETTING2, 0xa345);
+		regmap_write(rt5679->regmap, RT5679_VAD_ADC_PLL3_CTRL1, 0x0e2f);
+		regmap_write(rt5679->regmap, RT5679_DFLL_CAL_CTRL4, 0x0060);
+		regmap_write(rt5679->regmap, RT5679_DFLL_CAL_CTRL10, 0xc022);
+		regmap_write(rt5679->regmap, RT5679_VAD_FUNCTION_CTRL1, 0x8020);
+		regmap_write(rt5679->regmap, RT5679_DELAY_BUFFER_SRAM_CTRL4, 0x007a);
+
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO1,
 			RT5679_PWR_LDO3_ON, RT5679_PWR_LDO3_ON);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO2,
 			RT5679_PWR_LDO9, RT5679_PWR_LDO9);
-		regmap_write(rt5679->regmap, RT5679_DSP_CLK_SOURCE1, 0x0333);
-		regmap_write(rt5679->regmap, RT5679_DSP_CLK_SOURCE2, 0x0333);
-		regmap_update_bits(rt5679->regmap, RT5679_GLB_CLK2, 0x1, 0x1);
+		regmap_write(rt5679->regmap, RT5679_DSP_CLK_SOURCE2, 0x0222);
 		regmap_write(rt5679->regmap, RT5679_PWR_LDO3, 0x7707);
 		regmap_update_bits(rt5679->regmap, RT5679_HIFI_MINI_DSP_CTRL_ST,
 			0x30, 0x30);
+		regmap_write(rt5679->regmap, RT5679_VAD_FUNCTION_CTRL1, 0x0120);
+		regmap_update_bits(rt5679->regmap, RT5679_JACK_DET_CTRL5,
+			0x000f, 0x0006);
+		regmap_write(rt5679->regmap, RT5679_DIG_INPUT_PIN_ST_CTRL2,
+			0x4000);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_DSP,
 			RT5679_PWR_DCVDD9_ISO | RT5679_PWR_DCVDD3_ISO |
 			RT5679_PWR_SRAM | RT5679_PWR_MINI_DSP |
@@ -1011,7 +1030,27 @@ static void rt5679_set_dsp_mode(struct snd_soc_codec *codec, bool on)
 			RT5679_PWR_DCVDD3_ISO | RT5679_PWR_SRAM |
 			RT5679_PWR_MINI_DSP | RT5679_PWR_EP_DSP);
 		rt5679->is_dsp_mode = true;
+
+		ret = request_firmware(&fw, "ALC5679_0ffc0000", codec->dev);
+		if (ret == 0) {
+			rt5679_spi_burst_write(0x0ffc0000, fw->data, fw->size);
+			release_firmware(fw);
+		}
+
+		ret = request_firmware(&fw, "ALC5679_0ffe0000", codec->dev);
+		if (ret == 0) {
+			rt5679_spi_burst_write(0x0ffe0000, fw->data, fw->size);
+			release_firmware(fw);
+		}
+
+		regmap_update_bits(rt5679->regmap, RT5679_HIFI_MINI_DSP_CTRL_ST,
+			0x1, 0x0);
 	} else {
+		rt5679_dsp_mode_i2c_write_addr(rt5679, 0x1800082c , 0, 3);
+		rt5679_dsp_mode_i2c_write_addr(rt5679, 0x1800482c , 0, 3);
+		rt5679_dsp_mode_i2c_write_addr(rt5679, 0x18009128 , 0, 3);
+		regmap_update_bits(rt5679->regmap, RT5679_HIFI_MINI_DSP_CTRL_ST,
+			0x1, 0x1);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_DSP,
 			RT5679_PWR_DCVDD9_ISO | RT5679_PWR_DCVDD3_ISO |
 			RT5679_PWR_SRAM | RT5679_PWR_MINI_DSP |
@@ -1023,8 +1062,19 @@ static void rt5679_set_dsp_mode(struct snd_soc_codec *codec, bool on)
 			RT5679_PWR_LDO9, 0);
 		regmap_update_bits(rt5679->regmap, RT5679_PWR_LDO1,
 			RT5679_PWR_LDO3_ON, 0);
-		regmap_update_bits(rt5679->regmap, RT5679_PWR_ANA1,
-			RT5679_PWR_CLK_25M, 0);
+		regmap_write(rt5679->regmap, RT5679_DELAY_BUFFER_SRAM_CTRL4, 0x006a);
+		regmap_write(rt5679->regmap, RT5679_PITCH_HELLO_DET_CTRL1, 0x7681);
+		regmap_write(rt5679->regmap, RT5679_DFLL_CAL_CTRL10, 0x4022);
+		regmap_write(rt5679->regmap, RT5679_VAD_ADC_PLL3_CTRL1, 0x0e22);
+		regmap_write(rt5679->regmap, RT5679_VAD_CLK_SETTING2, 0xa345);
+		regmap_update_bits(rt5679->regmap, RT5679_DMIC_CTRL1,
+			RT5679_DMIC_1_EN_MASK, RT5679_DMIC_1_DIS);
+		regmap_write(rt5679->regmap, RT5679_VAD_CLK_SETTING2, 0x0242);
+		regmap_write(rt5679->regmap, RT5679_VAD_CLK_SETTING1, 0x0700);
+		regmap_update_bits(rt5679->regmap,
+			RT5679_MCLK_GATING_CTRL, RT5679_MCLK_GATE_MASK,
+			RT5679_MCLK_GATE_DIS);
+		regmap_write(rt5679->regmap, RT5679_GPIO_CTRL1, 0);
 	}
 }
 
@@ -1882,6 +1932,7 @@ static bool rt5679_readable_register(struct device *dev, unsigned int reg)
 	case RT5679_DUMMY_REG_2:
 	case RT5679_DUMMY_REG_3:
 	case RT5679_DUMMY_REG_4:
+	case RT5679_DSP_I2C_DATA_MSB:
 		return true;
 
 	default:
@@ -2041,16 +2092,26 @@ static void rt5679_jack_detect_work(struct work_struct *work)
 static irqreturn_t rt5679_irq(int irq, void *data)
 {
 	struct rt5679_priv *rt5679 = data;
-
+#ifndef DSP_AOV_TEST
 	queue_delayed_work(system_wq, &rt5679->jack_detect_work,
 		msecs_to_jiffies(rt5679->irq_work_delay_time));
+#else
+	unsigned int value;
 
+	rt5679_spi_read(0x1800c186, &value, 2);
+	if (value & 0x2000) {
+		printk(">>>>> TRACE [%s]->(%d) OK, Google! <<<<<\n", __FUNCTION__, __LINE__);
+		rt5679->dsp_mode = false;
+		rt5679_set_dsp_mode(rt5679->codec, rt5679->dsp_mode);
+	}
+#endif
 	return IRQ_HANDLED;
 }
 
 int rt5679_set_jack_detect(struct snd_soc_codec *codec,
 	struct snd_soc_jack *hp_jack)
 {
+#ifndef DSP_AOV_TEST
 	struct rt5679_priv *rt5679 = snd_soc_codec_get_drvdata(codec);
 
 	rt5679->hp_jack = hp_jack;
@@ -2070,7 +2131,7 @@ int rt5679_set_jack_detect(struct snd_soc_codec *codec,
 	switch_dev_register(&rt5679_headset_switch);
 #endif
 	rt5679_irq(0, rt5679);
-
+#endif
 	return 0;
 }
 EXPORT_SYMBOL_GPL(rt5679_set_jack_detect);
@@ -2371,13 +2432,36 @@ static int rt5679_jack_type_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static const char *rt5679_dsp_mode[] = {
+	"Stop", "Run"
+};
+
+static const SOC_ENUM_SINGLE_DECL(rt5679_dsp_mod_enum, 0, 0,
+	rt5679_dsp_mode);
+
+static int rt5679_dsp_mode_get(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
+	struct rt5679_priv *rt5679 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = rt5679->dsp_mode;
+
+	return 0;
+}
+
 static int rt5679_dsp_mode_put(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
 	struct snd_soc_codec *codec = snd_soc_component_to_codec(component);
+	struct rt5679_priv *rt5679 = snd_soc_codec_get_drvdata(codec);
 
-	rt5679_set_dsp_mode(codec, ucontrol->value.integer.value[0]);
+	if (rt5679->dsp_mode != ucontrol->value.integer.value[0]) {
+		rt5679->dsp_mode = ucontrol->value.integer.value[0];
+		rt5679_set_dsp_mode(codec, rt5679->dsp_mode);
+	}
 
 	return 0;
 }
@@ -2508,10 +2592,10 @@ static const struct snd_kcontrol_new rt5679_snd_controls[] = {
 	SOC_ENUM("OB 0-3 ASRC Switch", rt5679_ob_0_3_asrc_enum),
 	SOC_ENUM("OB 4-7 ASRC Switch", rt5679_ob_4_7_asrc_enum),
 
-	SOC_ENUM_EXT("jack type", rt5679_jack_type_enum,
-		rt5679_jack_type_get, rt5679_jack_type_put),
-	SOC_ENUM_EXT("dsp mode", rt5679_jack_type_enum,
-		rt5679_jack_type_get, rt5679_dsp_mode_put),
+	SOC_ENUM_EXT("jack type", rt5679_jack_type_enum, rt5679_jack_type_get,
+		rt5679_jack_type_put),
+	SOC_ENUM_EXT("dsp mode", rt5679_dsp_mod_enum, rt5679_dsp_mode_get,
+		rt5679_dsp_mode_put),
 };
 
 static int calc_dmic_clk(int rate)

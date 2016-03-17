@@ -2248,6 +2248,7 @@ struct rt5679_priv {
 	bool is_dsp_mode;
 	int reg_page;
 	int irq_work_delay_time;
+	int dsp_mode;
 };
 
 int rt5679_headset_detect(struct snd_soc_codec *codec, int jack_insert);
