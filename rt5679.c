@@ -70,7 +70,7 @@ static struct reg_default rt5679_init_list[] = {
 	{RT5679_PR_REG_MONO_AMP_BIAS_CTRL	, 0x0a69},
 	{RT5679_MONO_AMP_DC_CAL_CTRL3		, 0x2000},
 	/* MONO fine tune end */
-	{RT5679_MF_PIN_CTRL1			, 0x2009},
+	{RT5679_MF_PIN_CTRL1			, 0x2005},
 	{RT5679_PR_REG_PLL1_CTRL2		, 0x0044},
 	{RT5679_PR_REG_PLL2_CTRL2		, 0x0044},
 };
