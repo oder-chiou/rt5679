@@ -999,9 +999,9 @@ static void rt5679_set_dsp_mode(struct snd_soc_codec *codec, bool on)
 		regmap_update_bits(rt5679->regmap, RT5679_LDO8_LDO9_PR_CTRL,
 			0x0010, 0);
 		regmap_update_bits(rt5679->regmap, RT5679_DMIC_CTRL1,
-			RT5679_DMIC_1_EN_MASK, RT5679_DMIC_1_EN);
+			RT5679_DMIC_3_EN_MASK, RT5679_DMIC_3_EN);
 		regmap_write(rt5679->regmap, RT5679_VAD_ADC_FILTER_CTRL1, 0x8a2f);
-		regmap_write(rt5679->regmap, RT5679_VAD_ADC_FILTER_CTRL2, 0x0001);
+		regmap_write(rt5679->regmap, RT5679_VAD_ADC_FILTER_CTRL2, 0x0081);
 		regmap_write(rt5679->regmap, RT5679_VAD_CLK_SETTING1, 0x0720);
 		regmap_write(rt5679->regmap, RT5679_VAD_CLK_SETTING2, 0xa345);
 		regmap_write(rt5679->regmap, RT5679_VAD_ADC_PLL3_CTRL1, 0x0e2f);
