@@ -6903,26 +6903,9 @@ static ssize_t rt5679_codec_show(struct device *dev,
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct rt5679_priv *rt5679 = i2c_get_clientdata(client);
-	int start, end;
 
-	switch (rt5679->reg_page) {
-	case 1:
-		start = RT5679_HP_IMP_SENS_CTRL1;
-		end = RT5679_DMIC_CLK_ON_OFF_CTRL12;
-		break;
-
-	case 2:
-		start = RT5679_DAC_MULTI_DRC_MISC_CTRL;
-		end = RT5679_DUMMY_REG_4;
-		break;
-
-	default:
-		start = RT5679_RESET;
-		end = RT5679_HP_BL_CTRL2;
-		break;
-	}
-
-	return rt5679_codec_show_range(rt5679, buf, start, end);
+	return rt5679_codec_show_range(rt5679, buf, rt5679->reg_page << 8,
+		(rt5679->reg_page << 8) | 0xff);
 }
 
 static ssize_t rt5679_codec_store(struct device *dev,
@@ -6985,6 +6968,108 @@ static ssize_t rt5679_is_dsp_mode_show(struct device *dev,
 }
 static DEVICE_ATTR(is_dsp_mode, 0444, rt5679_is_dsp_mode_show, NULL);
 
+static ssize_t rt5679_codec_adb_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct rt5679_priv *rt5679 = i2c_get_clientdata(client);
+	struct snd_soc_codec *codec = rt5679->codec;
+	unsigned int val;
+	int cnt = 0, i;
+
+	for (i = 0; i < rt5679->adb_reg_num; i++) {
+		if (cnt + RT5679_REG_DISP_LEN >= PAGE_SIZE)
+			break;
+		val = snd_soc_read(codec, rt5679->adb_reg_addr[i]);
+		cnt += snprintf(buf + cnt, RT5679_REG_DISP_LEN, "%04x: %04x\n",
+			rt5679->adb_reg_addr[i], val);
+	}
+
+	return cnt;
+}
+
+static ssize_t rt5679_codec_adb_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct rt5679_priv *rt5679 = i2c_get_clientdata(client);
+	struct snd_soc_codec *codec = rt5679->codec;
+	unsigned int value = 0;
+	int i = 2, j = 0;
+
+	if (buf[0] == 'R' || buf[0] == 'r') {
+		while (j <= 0x100 && i < count) {
+			rt5679->adb_reg_addr[j] = 0;
+			value = 0;
+			for ( ; i < count; i++) {
+				if (*(buf + i) <= '9' && *(buf + i) >= '0')
+					value = (value << 4) | (*(buf + i) - '0');
+				else if (*(buf + i) <= 'f' && *(buf + i) >= 'a')
+					value = (value << 4) | ((*(buf + i) - 'a')+0xa);
+				else if (*(buf + i) <= 'F' && *(buf + i) >= 'A')
+					value = (value << 4) | ((*(buf + i) - 'A')+0xa);
+				else
+					break;
+			}
+			i++;
+
+			rt5679->adb_reg_addr[j] = value;
+			j++;
+		}
+		rt5679->adb_reg_num = j;
+	} else if (buf[0] == 'W' || buf[0] == 'w') {
+		while (j <= 0x100 && i < count) {
+			/* Get address */
+			rt5679->adb_reg_addr[j] = 0;
+			value = 0;
+			for ( ; i < count; i++) {
+				if (*(buf + i) <= '9' && *(buf + i) >= '0')
+					value = (value << 4) | (*(buf + i) - '0');
+				else if (*(buf + i) <= 'f' && *(buf + i) >= 'a')
+					value = (value << 4) | ((*(buf + i) - 'a')+0xa);
+				else if (*(buf + i) <= 'F' && *(buf + i) >= 'A')
+					value = (value << 4) | ((*(buf + i) - 'A')+0xa);
+				else
+					break;
+			}
+			i++;
+			rt5679->adb_reg_addr[j] = value;
+
+			/* Get value */
+			rt5679->adb_reg_value[j] = 0;
+			value = 0;
+			for ( ; i < count; i++) {
+				if (*(buf + i) <= '9' && *(buf + i) >= '0')
+					value = (value << 4) | (*(buf + i) - '0');
+				else if (*(buf + i) <= 'f' && *(buf + i) >= 'a')
+					value = (value << 4) | ((*(buf + i) - 'a')+0xa);
+				else if (*(buf + i) <= 'F' && *(buf + i) >= 'A')
+					value = (value << 4) | ((*(buf + i) - 'A')+0xa);
+				else
+					break;
+			}
+			i++;
+			rt5679->adb_reg_value[j] = value;
+
+			j++;
+		}
+
+		rt5679->adb_reg_num = j;
+
+		for (i = 0; i < rt5679->adb_reg_num; i++) {
+			snd_soc_write(codec,
+				rt5679->adb_reg_addr[i] & 0xffff,
+				rt5679->adb_reg_value[i]);
+		}
+
+	}
+
+	return count;
+}
+
+static DEVICE_ATTR(codec_reg_adb, 0664, rt5679_codec_adb_show,
+			rt5679_codec_adb_store);
+
 static int rt5679_set_bias_level(struct snd_soc_codec *codec,
 			enum snd_soc_bias_level level)
 {
@@ -7036,6 +7121,13 @@ static int rt5679_probe(struct snd_soc_codec *codec)
 		return ret;
 	}
 
+	ret = device_create_file(codec->dev, &dev_attr_codec_reg_adb);
+	if (ret != 0) {
+		dev_err(codec->dev,
+			"Failed to create codec_reg_adb sysfs files: %d\n", ret);
+		return ret;
+	}
+
 	ret = device_create_file(codec->dev, &dev_attr_is_dsp_mode);
 	if (ret != 0) {
 		dev_err(codec->dev,
@@ -7051,6 +7143,11 @@ static int rt5679_probe(struct snd_soc_codec *codec)
 static int rt5679_remove(struct snd_soc_codec *codec)
 {
 	rt5679_set_bias_level(codec, SND_SOC_BIAS_OFF);
+
+	device_remove_file(codec->dev, &dev_attr_codec_reg);
+	device_remove_file(codec->dev, &dev_attr_codec_reg_adb);
+	device_remove_file(codec->dev, &dev_attr_is_dsp_mode);
+
 	return 0;
 }
 

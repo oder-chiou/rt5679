@@ -2249,6 +2249,10 @@ struct rt5679_priv {
 	int reg_page;
 	int irq_work_delay_time;
 	int dsp_mode;
+
+	unsigned int adb_reg_addr[0x100];
+	unsigned int adb_reg_value[0x100];
+	unsigned short adb_reg_num;
 };
 
 int rt5679_headset_detect(struct snd_soc_codec *codec, int jack_insert);
